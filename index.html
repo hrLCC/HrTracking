@@ -543,9 +543,9 @@ function dueText(t){if(!t.due)return '';const d=diffDays(t.due,today()),tm=t.due
 
 /* ================= navigation ================= */
 function go(r){S.route=r;S.drawer=false;const tok=r.id?`${r.v}-${r.id}`:r.v;try{history.replaceState(null,'','#'+tok)}catch(e){}emit();const p=document.querySelector('.page');if(p)p.scrollTop=0}
-function readHash(){const h=(location.hash||'').slice(1);if(!h)return;const m=h.match(/^(board|project)-(.+)$/);if(m)S.route={v:m[1],id:m[2]};else if(['dashboard','my','projects','boards','calendar','analytics','archive','settings'].includes(h))S.route={v:h}}
+function readHash(){const h=(location.hash||'').slice(1);if(!h)return;const tk=h.match(/^task-(.+)$/);if(tk){S.openTask=decodeURIComponent(tk[1]);return}const m=h.match(/^(board|project)-(.+)$/);if(m)S.route={v:m[1],id:m[2]};else if(['dashboard','my','projects','boards','calendar','analytics','archive','settings'].includes(h))S.route={v:h}}
 const openTask=id=>{S.openTask=id;emit()};
-const closeTask=()=>{S.openTask=null;emit()};
+const closeTask=()=>{S.openTask=null;if(/^#task-/.test(location.hash)){try{history.replaceState(null,'','#dashboard')}catch(e){}}emit()};
 const openQuick=init=>{S.quick=init||{};emit()};
 const openModal=m=>{S.modal=m;emit()};
 const closeModal=()=>{S.modal=null;emit()};
