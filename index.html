@@ -462,6 +462,33 @@ table.tbl{width:100%;border-collapse:collapse;min-width:720px}
 .check-row{display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer}
 .check-row input{width:17px;height:17px;accent-color:var(--green)}
 @media (max-width:800px){.op{grid-template-columns:56px minmax(0,1fr)}.op-rec,.op-who{grid-column:2}}
+
+/* personal notebook */
+.nb{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;max-width:1200px;align-items:start}
+@media (max-width:900px){.nb{grid-template-columns:1fr}}
+.nb-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.nb-add .inp{flex:1 1 260px}
+.chipbtn{border:1px solid var(--line-2);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:12.5px;color:var(--muted)}
+.chipbtn.on{background:var(--green-soft);border-color:var(--green);color:var(--green-txt);font-weight:600}
+.td{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;min-width:0}
+.td:hover{background:var(--surface-2)}
+.td-t{flex:1;min-width:0;overflow-wrap:anywhere;cursor:text;line-height:1.4}
+.td.done .td-t{text-decoration:line-through;color:var(--muted)}
+.td .inp{flex:1}
+.star{border:0;background:transparent;color:var(--line-2);padding:2px;display:grid;place-items:center;flex:none}
+.star:hover{color:var(--amber)}
+.star.on{color:#E0A030}
+.td .dt{width:132px;flex:none;border:1px solid transparent;background:transparent;border-radius:6px;padding:2px 6px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.td .dt:hover,.td .dt:focus{border-color:var(--line-2);outline:none}
+.td .dt.late{color:var(--red);font-weight:600}
+.td .dt.soon{color:var(--amber);font-weight:600}
+.td .dt.empty{opacity:0}
+.td:hover .dt.empty,.td .dt.empty:focus{opacity:1}
+@media (hover:none){.td .dt.empty{opacity:.5}}
+@media (max-width:560px){.td .dt{width:110px}}
+.notes{width:100%;min-height:420px;border:0;resize:vertical;background:transparent;line-height:1.6;font-size:14px;padding:0;color:var(--fg)}
+.notes:focus{outline:none}
+.lock{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0}
 .loading{display:grid;place-items:center;height:100%;color:var(--muted);gap:10px;text-align:center;padding:24px}
 .spin{width:28px;height:28px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--green);animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -526,7 +553,7 @@ const GROUPS=[{id:'g-todo',name:'To Do',kinds:['backlog','todo'],target:'todo',c
 const NATIVE={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',gif:'image/gif',pdf:'application/pdf',mp4:'video/mp4',webm:'video/webm',csv:'text/csv',txt:'text/plain'};
 
 /* ================= store ================= */
-const S={dbOk:null,viewer:null,meId:null,readOnly:false,users:{},boards:{},columns:{},tasks:{},projects:{},notifs:{},events:{},recurring:{},openings:{},settings:null,loaded:{},
+const S={dbOk:null,viewer:null,meId:null,readOnly:false,users:{},boards:{},columns:{},tasks:{},projects:{},notifs:{},events:{},recurring:{},openings:{},mine:{},settings:null,loaded:{},
   route:{v:'dashboard'},openTask:null,quick:null,modal:null,drawer:false,toasts:[],linkTried:false};
 let DB=null,ASSETS=null,sb=null;
 const subs=new Set();
@@ -565,7 +592,7 @@ function dueText(t){if(!t.due)return '';const d=diffDays(t.due,today()),tm=t.due
 
 /* ================= navigation ================= */
 function go(r){S.route=r;S.drawer=false;const tok=r.id?`${r.v}-${r.id}`:r.v;try{history.replaceState(null,'','#'+tok)}catch(e){}emit();const p=document.querySelector('.page');if(p)p.scrollTop=0}
-function readHash(){const h=(location.hash||'').slice(1);if(!h)return;const tk=h.match(/^task-(.+)$/);if(tk){S.openTask=decodeURIComponent(tk[1]);return}const m=h.match(/^(board|project)-(.+)$/);if(m)S.route={v:m[1],id:m[2]};else if(['dashboard','my','projects','openings','boards','calendar','analytics','archive','settings'].includes(h))S.route={v:h}}
+function readHash(){const h=(location.hash||'').slice(1);if(!h)return;const tk=h.match(/^task-(.+)$/);if(tk){S.openTask=decodeURIComponent(tk[1]);return}const m=h.match(/^(board|project)-(.+)$/);if(m)S.route={v:m[1],id:m[2]};else if(['dashboard','my','notebook','projects','openings','boards','calendar','analytics','archive','settings'].includes(h))S.route={v:h}}
 const openTask=id=>{S.openTask=id;emit()};
 const closeTask=()=>{S.openTask=null;if(/^#task-/.test(location.hash)){try{history.replaceState(null,'','#dashboard')}catch(e){}}emit()};
 const openQuick=init=>{S.quick=init||{};emit()};
@@ -710,10 +737,12 @@ function makeDB(sb){
 
 /* ================= boot ================= */
 function subscribe(coll,key){DB.collection(coll).onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{o[d.id]={...d.data(),id:d.id}});S[key]=o;S.loaded[key]=true;emit();afterData()},()=>{S.loaded[key]=true;emit();afterData()})}
-let notifSub=null,started=false;
+let notifSub=null,mineSub=null,started=false;
+const mineColl=()=>'mine:'+((S.viewer&&S.viewer.email)||'');
 function afterData(){
   const L=S.loaded;if(!(L.users&&L.boards&&L.columns&&L.tasks))return;
   if(!S.meId&&S.viewer){const em=S.viewer.email;const mine=Object.values(S.users).find(u=>!u.removed&&u.email&&u.email.trim().toLowerCase()===em);if(mine){S.meId=mine.id;emit()}}
+  if(S.meId&&!mineSub&&S.viewer&&S.viewer.email){mineSub=DB.collection(mineColl()).onSnapshot(s=>{const o={};s.docs.forEach(d=>{o[d.id]={...d.data(),id:d.id}});S.mine=o;S.loaded.mine=true;emit()},()=>{S.loaded.mine=true;emit()})}
   if(S.meId&&!notifSub){notifSub=DB.collection('notifs').where('to','==',S.meId).onSnapshot(s=>{const o={};s.docs.forEach(d=>{o[d.id]={...d.data(),id:d.id}});S.notifs=o;emit()},()=>{})}
   if(S.meId&&L.recurring)runRecurring();
   if(S.meId&&L.boards)seedIfEmpty();
@@ -744,7 +773,7 @@ async function signOut(){try{await sb.auth.signOut()}catch(e){}location.reload()
 /* ================= small components ================= */
 const ICONS={home:'M3 10.5L12 4l9 6.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z',check:'M5 12.5l4.5 4.5L19 7.5',mytasks:'M9 11.5l2.5 2.5L17 8.5M20 12v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1h11',
   folder:'M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z',cols:'M4 4h4.5v16H4zM10 4h4.5v11H10zM16 4h4v14h-4z',cal:'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
-  chart:'M5 20V11M11 20V5M17 20v-6M3 20h18',archive:'M3 5h18v4H3zM5 9v10h14V9M10 13h4',store:'M4 9.5L5.5 4h13L20 9.5M4 9.5V20h16V9.5M4 9.5h16M9.5 20v-5.5h5V20',settings:'M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4',
+  chart:'M5 20V11M11 20V5M17 20v-6M3 20h18',archive:'M3 5h18v4H3zM5 9v10h14V9M10 13h4',star:'M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z',lock:'M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 017 0v3',note:'M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7',store:'M4 9.5L5.5 4h13L20 9.5M4 9.5V20h16V9.5M4 9.5h16M9.5 20v-5.5h5V20',settings:'M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4',
   bell:'M6 9a6 6 0 1112 0c0 6.5 2.5 8 2.5 8h-17S6 15.5 6 9M10 20.5a2 2 0 004 0',search:'M11 4a7 7 0 100 14 7 7 0 000-14zM20 20l-4-4',plus:'M12 5v14M5 12h14',x:'M6 6l12 12M18 6L6 18',
   menu:'M4 7h16M4 12h16M4 17h16',clock:'M12 3.5a8.5 8.5 0 100 17 8.5 8.5 0 000-17zM12 7.5V12l3 2',clip:'M20 11.5l-8 8a5 5 0 01-7-7l8.5-8.5a3.3 3.3 0 014.7 4.7L9.7 17.2a1.7 1.7 0 01-2.4-2.4l7.6-7.6',
   msg:'M4 5h16v11H9l-5 4z',repeat:'M17 3l3 3-3 3M4 11V9a3 3 0 013-3h13M7 21l-3-3 3-3M20 13v2a3 3 0 01-3 3H4',flag:'M5 21V4M5 4h12l-2.5 4L17 12H5',
@@ -902,7 +931,7 @@ function Sidebar(){const r=S.route;
   return html`<${Fragment}>
     <aside className=${cls('side',S.drawer&&'open')} aria-label="Навігація">
       <div className="brand"><div className="logo">LC</div><div><b>Lviv Croissants</b><span>HR Workspace</span></div></div>
-      ${item('dashboard','Головна','home')}${item('my','Мої задачі','mytasks',myOpen)}${item('projects','Проєкти','folder')}${item('openings','Відкриття','store')}${item('boards','Дошки','cols')}${item('calendar','Календар','cal')}${item('analytics','Аналітика','chart')}
+      ${item('dashboard','Головна','home')}${item('my','Мої задачі','mytasks',myOpen)}${item('notebook','Мій блокнот','note',Object.values(S.mine).filter(x=>x.kind==='todo'&&!x.done&&x.due&&x.due<=today()).length)}${item('projects','Проєкти','folder')}${item('openings','Відкриття','store')}${item('boards','Дошки','cols')}${item('calendar','Календар','cal')}${item('analytics','Аналітика','chart')}
       <div className="side-h"><span>Дошки</span>${isAdmin()&&canWrite()&&html`<button type="button" title="Нова дошка" aria-label="Нова дошка" onClick=${()=>openModal({type:'board'})}><${I} n="plus" s=${15}/></button>`}</div>
       ${visBoards().map(b=>html`<button type="button" key=${b.id} className=${cls('nav brd',r.v==='board'&&r.id===b.id&&'on')} onClick=${()=>go({v:'board',id:b.id})}><i style=${{background:b.color}}></i><span>${b.name}</span></button>`)}
       <div className="side-foot">${item('archive','Архів','archive')}${item('settings','Налаштування','settings')}</div>
@@ -955,10 +984,10 @@ function Topbar(){return html`<header className="top">
 
 /* ================= quick create ================= */
 function QuickCreate({init}){const bs=visBoards();const curBoard=S.route.v==='board'?S.route.id:null;
-  const [f,setF]=useState({title:'',boardId:init.boardId||curBoard||(bs[0]&&bs[0].id)||'',assignee:init.assignee!==undefined?init.assignee:S.meId,priority:'mid',due:init.due||'',projectId:init.projectId||''});
+  const [f,setF]=useState({title:init.title||'',boardId:init.boardId||curBoard||(bs[0]&&bs[0].id)||'',assignee:init.assignee!==undefined?init.assignee:S.meId,priority:'mid',due:init.due||'',projectId:init.projectId||''});
   const set=(k,v)=>setF({...f,[k]:v});const close=()=>{S.quick=null;emit()};
   async function submit(openAfter){if(!f.title.trim()||!f.boardId)return;const id=await createTask({title:f.title.trim(),boardId:f.boardId,assignees:f.assignee?[f.assignee]:[],priority:f.priority,due:f.due,projectId:f.projectId});
-    if(id){close();toast('Задачу створено');if(openAfter)openTask(id)}}
+    if(id){close();toast('Задачу створено');if(init.onCreated)init.onCreated(id);if(openAfter)openTask(id)}}
   return html`<${Modal} title="Нова задача" onClose=${close}><form className="modal-b" onSubmit=${e=>{e.preventDefault();submit(false)}}>
     <label className="field"><span>Назва</span><input id="qc-title" className="inp" autoFocus required maxLength="200" value=${f.title} onChange=${e=>set('title',e.target.value)} placeholder="Напр.: Погодити Job Offer для Store Manager"/></label>
     <div className="grid2">
@@ -1156,6 +1185,7 @@ function Dashboard(){const td=today(),weekEnd=addDays(startOfWeek(td),6),all=liv
       <section className="box red"><h2 className="sec-t">Прострочені задачі <span className="n">${overdue.length}</span></h2>
         ${!overdue.length?html`<div className="hint">Прострочених задач немає.</div>`:overdue.slice(0,7).map(t=>html`<${TaskRow} key=${t.id} t=${t} showBoard=${false}/>`)}
         ${overdue.length>7&&html`<div className="hint" style=${{padding:'4px 8px'}}>і ще ${overdue.length-7}</div>`}</section>
+      <${NotebookToday}/>
       <section className="box"><h2 className="sec-t">Найближчі дедлайни</h2>
         ${!nearest.length?html`<div className="hint">Немає задач із дедлайном.</div>`:nearest.map(t=>html`<${TaskRow} key=${t.id} t=${t} showBoard=${false}/>`)}</section>
     </div>
@@ -1337,6 +1367,69 @@ function ArchivePage(){const [q,setQ]=useState('');const [tab,setTab]=useState('
       <td onClick=${e=>e.stopPropagation()} style=${{whiteSpace:'nowrap',textAlign:'right'}}>${canWrite()&&html`<button type="button" className="btn sm" onClick=${()=>updTask(t,tab==='archived'?{archived:false}:{deleted:false},'задачу відновлено').then(ok=>ok&&toast('Задачу відновлено'))}><${I} n="restore" s=${14}/>Відновити</button>`}
         ${tab==='deleted'&&isAdmin()&&canWrite()&&html` <${Confirm} label="Назавжди" confirm="Видалити назавжди?" onYes=${()=>purge(t)}/>`}</td></tr>`)}</tbody></table></div>`}
   </div>`}
+
+/* ================= personal notebook (private: visible only to its owner) ================= */
+async function mineSet(id,data,create){const prev=S.mine[id];S.mine={...S.mine,[id]:{...(create?{}:prev),...data,id}};emit();
+  try{const ref=DB.collection(mineColl()).doc(id);if(create)await ref.set(clean(data));else await ref.update(clean(data));return true}
+  catch(e){const c={...S.mine};if(prev)c[id]=prev;else delete c[id];S.mine=c;emit();toast(dbErr(e),'err');return false}}
+async function mineDel(id){const prev=S.mine[id];const c={...S.mine};delete c[id];S.mine=c;emit();
+  try{await DB.collection(mineColl()).doc(id).delete()}catch(e){if(prev){S.mine={...S.mine,[id]:prev};emit()}toast(dbErr(e),'err')}}
+const todoSort=(a,b)=>(b.star?1:0)-(a.star?1:0)||((a.due||'9999')<(b.due||'9999')?-1:(a.due||'9999')>(b.due||'9999')?1:0)||((a.order||0)-(b.order||0));
+function Star({on}){return html`<svg width="17" height="17" viewBox="0 0 24 24" fill=${on?'currentColor':'none'} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true"><path d=${ICONS.star}/></svg>`}
+function TodoItem({t}){const [ed,setEd]=useState(false);const [open,setOpen,ref]=usePop();const td=today();
+  const dc=!t.due?'empty':t.done?'':t.due<td?'late':diffDays(t.due,td)<=1?'soon':'';
+  const toggle=()=>mineSet(t.id,{done:!t.done,doneAt:!t.done?nowIso():null});
+  function toBoard(){setOpen(false);openQuick({title:t.text,due:t.due||'',assignee:S.meId,onCreated:()=>{mineSet(t.id,{done:true,doneAt:nowIso()});toast('Справу перенесено на дошку')}})}
+  return html`<div className=${cls('td',t.done&&'done')}>
+    <button type="button" className=${cls('tick',t.done&&'on')} aria-label=${t.done?'Повернути':'Виконано'} onClick=${toggle}><${I} n="check" s=${12} w=${2.6}/></button>
+    ${ed?html`<input className="inp sm" autoFocus defaultValue=${t.text} onBlur=${e=>{const v=e.target.value.trim();setEd(false);if(v&&v!==t.text)mineSet(t.id,{text:v})}} onKeyDown=${e=>{if(e.key==='Enter')e.target.blur();if(e.key==='Escape'){e.stopPropagation();setEd(false)}}}/>`
+      :html`<span className="td-t" onClick=${()=>setEd(true)}>${t.text}</span>`}
+    ${!t.done&&html`<input type="date" className=${cls('dt',dc)} value=${t.due||''} onChange=${e=>mineSet(t.id,{due:e.target.value})} aria-label="Дата" title="Дата"/>`}
+    <button type="button" className=${cls('star',t.star&&'on')} aria-label="Важливо" title="Важливо" onClick=${()=>mineSet(t.id,{star:!t.star})}><${Star} on=${!!t.star}/></button>
+    <span className="menu-anchor" ref=${ref}><button type="button" className="icon-btn sm" aria-label="Ще дії" onClick=${()=>setOpen(!open)}><${I} n="dots"/></button>
+      ${open&&html`<div className="pop">${!t.done&&html`<button type="button" className="pop-item" onClick=${toBoard}><${I} n="cols" s=${15}/><span>Зробити задачею на дошці</span></button>`}
+        <button type="button" className="pop-item danger" onClick=${()=>{setOpen(false);mineDel(t.id)}}><${I} n="trash" s=${15}/><span>Видалити</span></button></div>`}</span>
+  </div>`}
+function NotesBox(){const n=S.mine.notes;const [v,setV]=useState(n?(n.text||''):'');const [st,setSt]=useState('');const tmr=useRef(null);const ref=useRef(null);
+  useEffect(()=>{if(document.activeElement!==ref.current)setV(n?(n.text||''):'')},[n&&n.text]);
+  useEffect(()=>()=>clearTimeout(tmr.current),[]);
+  function change(x){setV(x);setSt('Зберігаю…');clearTimeout(tmr.current);tmr.current=setTimeout(async()=>{const ok=await mineSet('notes',{kind:'notes',text:x,updatedAt:nowIso()},!S.mine.notes);setSt(ok?'Збережено':'')},700)}
+  return html`<section className="box"><h2 className="sec-t">Нотатки <span style=${{flex:1}}></span><span className="lock">${st||(n&&n.updatedAt?'змінено '+fmtDT(n.updatedAt):'')}</span></h2>
+    <textarea ref=${ref} className="notes" value=${v} onChange=${e=>change(e.target.value)} placeholder="Думки, ідеї, домовленості з дзвінків, номери телефонів… Зберігається автоматично."/></section>`}
+function NotebookPage(){const td=today(),tm=addDays(td,1),we=addDays(startOfWeek(td),6);
+  const [text,setText]=useState('');const [due,setDue]=useState('');const [showDone,setShowDone]=useState(false);
+  const todos=Object.values(S.mine).filter(x=>x.kind==='todo');const open=todos.filter(t=>!t.done);
+  const done=todos.filter(t=>t.done).sort((a,b)=>(a.doneAt||'')<(b.doneAt||'')?1:-1);
+  const groups=[['Прострочені',t=>t.due&&t.due<td,'late'],['Сьогодні',t=>t.due===td,''],['Завтра',t=>t.due===tm,''],['Цей тиждень',t=>t.due>tm&&t.due<=we,''],['Пізніше',t=>t.due>we,''],['Без дати',t=>!t.due,'']];
+  async function add(){const s=text.trim();if(!s)return;setText('');setDue('');const id=DB.collection(mineColl()).doc().id;await mineSet(id,{kind:'todo',text:s,done:false,due,star:false,createdAt:nowIso(),order:Date.now()},true)}
+  const chip=(label,val)=>html`<button type="button" className=${cls('chipbtn',due===val&&'on')} onClick=${()=>{setDue(due===val?'':val);const el=document.getElementById('nb-text');if(el)el.focus()}}>${label}</button>`;
+  if(!S.loaded.mine)return html`<div className="loading"><div><div className="spin" style=${{margin:'0 auto 10px'}}></div>Завантажую блокнот…</div></div>`;
+  return html`<${Fragment}>
+    <div className="ph"><div><h1>Мій блокнот</h1><p>Особисті справи й нотатки замість паперового блокнота.</p></div><span className="sp"></span><span className="lock" style=${{marginTop:8}}><${I} n="lock" s=${14}/>Бачите тільки ви</span></div>
+    <div className="nb">
+      <section className="box">
+        <div className="nb-add">
+          <input id="nb-text" className="inp" placeholder="Що потрібно зробити? Enter — додати" value=${text} onChange=${e=>setText(e.target.value)} onKeyDown=${e=>{if(e.key==='Enter'){e.preventDefault();add()}}}/>
+          <button type="button" className="btn primary" onClick=${add}><${I} n="plus" s=${15}/>Додати</button>
+        </div>
+        <div className="nb-add" style=${{marginTop:-4}}>
+          <span className="hint">Коли:</span>${chip('Сьогодні',td)}${chip('Завтра',tm)}
+          <input type="date" className="inp sm" style=${{width:150,flex:'none'}} value=${due} onChange=${e=>setDue(e.target.value)} aria-label="Інша дата"/>
+          ${due&&html`<button type="button" className="btn ghost sm" onClick=${()=>setDue('')}>Без дати</button>`}
+        </div>
+        ${!open.length?html`<div className="empty" style=${{marginTop:6}}>${todos.length?'Усе зроблено! Додайте нову справу вгорі.':'Тут ваші особисті справи: дзвінки, нагадування, дрібниці, які не потрібні на спільній дошці. Напишіть першу й натисніть Enter.'}</div>`:
+          groups.map(([name,fn,k])=>{const list=open.filter(fn).sort(todoSort);return list.length?html`<div key=${name} className=${cls('grp',k)}><h5>${name} <span className="n">${list.length}</span></h5>${list.map(t=>html`<${TodoItem} key=${t.id} t=${t}/>`)}</div>`:null})}
+        ${done.length>0&&html`<div className="grp" style=${{marginTop:16}}><h5 style=${{display:'flex',alignItems:'center',gap:8}}><button type="button" className="btn ghost sm" style=${{marginLeft:-10}} onClick=${()=>setShowDone(!showDone)}><${I} n=${showDone?'down':'right'} s=${14}/>Виконано <span className="n">${done.length}</span></button><span style=${{flex:1}}></span>
+          ${showDone&&html`<${Confirm} className="btn ghost sm" label="Очистити виконані" confirm="Видалити всі виконані?" onYes=${()=>done.forEach(t=>mineDel(t.id))}/>`}</h5>
+          ${showDone&&done.slice(0,100).map(t=>html`<${TodoItem} key=${t.id} t=${t}/>`)}</div>`}
+      </section>
+      <${NotesBox}/>
+    </div>
+  <//>`}
+function NotebookToday(){const td=today();const list=Object.values(S.mine).filter(x=>x.kind==='todo'&&!x.done&&x.due&&x.due<=td).sort(todoSort);
+  if(!list.length)return null;
+  return html`<section className="box"><h2 className="sec-t">З мого блокнота <span className="n">${list.length}</span><span style=${{flex:1}}></span><button type="button" className="btn ghost sm" onClick=${()=>go({v:'notebook'})}>Відкрити<${I} n="right" s=${14}/></button></h2>
+    ${list.slice(0,6).map(t=>html`<${TodoItem} key=${t.id} t=${t}/>`)}${list.length>6&&html`<div className="hint" style=${{padding:'4px 8px'}}>і ще ${list.length-6}</div>`}</section>`}
 
 /* ================= openings ================= */
 const BRANDS=['Lviv Croissants','1708 Pizza Di Napoli','Magic Bowls','Puffy Pancakes'];
@@ -1581,6 +1674,7 @@ function App(){useStore();
   const r=S.route;let page,flush=false;
   if(r.v==='board'){page=html`<${BoardView} key=${r.id} id=${r.id}/>`;flush=true}
   else if(r.v==='my'){page=html`<${MyTasks}/>`}
+  else if(r.v==='notebook'){page=html`<${NotebookPage}/>`}
   else if(r.v==='projects')page=html`<${ProjectsPage}/>`;
   else if(r.v==='openings')page=html`<${OpeningsPage}/>`;
   else if(r.v==='project')page=html`<${ProjectView} id=${r.id}/>`;
