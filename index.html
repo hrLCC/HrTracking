@@ -489,6 +489,28 @@ table.tbl{width:100%;border-collapse:collapse;min-width:720px}
 .notes{width:100%;min-height:420px;border:0;resize:vertical;background:transparent;line-height:1.6;font-size:14px;padding:0;color:var(--fg)}
 .notes:focus{outline:none}
 .lock{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0}
+
+/* notebook v2 */
+.td-ic{display:inline-flex;gap:6px;margin-left:8px;color:var(--faint);vertical-align:-2px}
+.td-t[role=button]{cursor:pointer}
+.td-t[role=button]:hover{color:var(--green-txt)}
+.ntb{display:flex;gap:4px;flex-wrap:wrap;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.ntb .sw{width:24px;height:24px;border-radius:6px;border:1px solid rgba(0,0,0,.12);padding:0}
+.ntb .sw.clear{background:var(--surface);position:relative}
+.ntb .sw.clear::after{content:"";position:absolute;left:3px;right:3px;top:50%;height:1.5px;background:var(--red);transform:rotate(-45deg)}
+.ntb .sep{width:1px;height:20px;background:var(--line);margin:0 4px}
+.ntb .tb{border:0;background:transparent;border-radius:6px;padding:4px 8px;font-size:13px;color:var(--fg);display:inline-flex;align-items:center;gap:5px}
+.ntb .tb:hover{background:var(--surface-2)}
+.notes-ed{min-height:420px;outline:none;line-height:1.65;font-size:14px;overflow-wrap:anywhere}
+.notes-ed:empty::before{content:attr(data-ph);color:var(--faint)}
+.notes-ed span[style*="background"]{color:#1C2421;border-radius:3px;padding:0 1px}
+.notes-ed ul,.notes-ed ol{padding-left:22px;margin:4px 0}
+.nt-link{display:inline-flex;align-items:center;gap:5px;padding:1px 9px;border-radius:999px;background:var(--green-soft);color:var(--green-txt);font-weight:600;font-size:13px;cursor:pointer;user-select:none;margin:0 2px;line-height:1.5}
+.nt-link::before{content:"☐";font-weight:400}
+.nt-link.done{text-decoration:line-through;opacity:.75}
+.nt-link.done::before{content:"☑"}
+.nt-link.gone{opacity:.45;text-decoration:line-through}
+.nt-link:hover{filter:brightness(.96)}
 .loading{display:grid;place-items:center;height:100%;color:var(--muted);gap:10px;text-align:center;padding:24px}
 .spin{width:28px;height:28px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--green);animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -553,7 +575,7 @@ const GROUPS=[{id:'g-todo',name:'To Do',kinds:['backlog','todo'],target:'todo',c
 const NATIVE={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',gif:'image/gif',pdf:'application/pdf',mp4:'video/mp4',webm:'video/webm',csv:'text/csv',txt:'text/plain'};
 
 /* ================= store ================= */
-const S={dbOk:null,viewer:null,meId:null,readOnly:false,users:{},boards:{},columns:{},tasks:{},projects:{},notifs:{},events:{},recurring:{},openings:{},mine:{},settings:null,loaded:{},
+const S={dbOk:null,viewer:null,meId:null,readOnly:false,users:{},boards:{},columns:{},tasks:{},projects:{},notifs:{},events:{},recurring:{},openings:{},mine:{},shared:{},openTodo:null,settings:null,loaded:{},
   route:{v:'dashboard'},openTask:null,quick:null,modal:null,drawer:false,toasts:[],linkTried:false};
 let DB=null,ASSETS=null,sb=null;
 const subs=new Set();
@@ -700,7 +722,7 @@ const kb=n=>n>1048576?(n/1048576).toFixed(1)+' МБ':Math.max(1,Math.round(n/102
 const SEED=[["users","u-stella",{"name":"Стелла Новікова","title":"в.о. HR-директора","email":"s.novikova@lvivcroissants.com","role":"admin","color":"#124A3B","photo":"","claudeId":"","removed":false,"order":1}],["users","u-kateryna",{"name":"Катерина Бездрабко","title":"Head of Recruitment","email":"","role":"user","color":"#2F6D8A","photo":"","claudeId":"","removed":false,"order":2}],["users","u-tetiana",{"name":"Тетяна Кондратюк","title":"Старший рекрутер","email":"","role":"user","color":"#7A4E9C","photo":"","claudeId":"","removed":false,"order":3}],["users","u-khrystyna-b",{"name":"Христина Березович","title":"Менеджер з онбордингу","email":"","role":"user","color":"#B0507E","photo":"","claudeId":"","removed":false,"order":4}],["users","u-svitlana",{"name":"Світлана Тихенька","title":"Рекрутер","email":"","role":"user","color":"#A86A12","photo":"","claudeId":"","removed":false,"order":5}],["users","u-anastasiia",{"name":"Анастасія Кримова","title":"Рекрутер","email":"","role":"user","color":"#1F7F80","photo":"","claudeId":"","removed":false,"order":6}],["users","u-olena",{"name":"Олена Целіковська","title":"Внутрішні комунікації","email":"","role":"user","color":"#5B6B8C","photo":"","claudeId":"","removed":false,"order":7}],["users","u-khrystyna-m",{"name":"Христина Максимець","title":"Оператор облікових систем","email":"","role":"user","color":"#9C4A2E","photo":"","claudeId":"","removed":false,"order":8}],["users","u-mariia",{"name":"Марія Грабовська","title":"Асистент міжнародного напряму","email":"","role":"user","color":"#3E7A3A","photo":"","claudeId":"","removed":false,"order":9}],["users","u-viktoriia",{"name":"Вікторія Борисевич","title":"Відеомейкер","email":"","role":"user","color":"#5A55B8","photo":"","claudeId":"","removed":false,"order":10}],["meta","settings",{"labels":[{"id":"recruitment","name":"Recruitment","color":"#2E7D5B"},{"id":"onboarding","name":"Onboarding","color":"#3A6EA5"},{"id":"ld","name":"L&D","color":"#7A4E9C"},{"id":"brand","name":"Employer Brand","color":"#B0507E"},{"id":"comms","name":"Internal Communications","color":"#B7791F"},{"id":"analytics","name":"Analytics","color":"#5B6B8C"},{"id":"intl","name":"International","color":"#1F7F80"},{"id":"franchise","name":"Franchise","color":"#C2643A"},{"id":"admin","name":"Administration","color":"#7D8581"},{"id":"project","name":"Project","color":"#124A3B"}]}],["boards","hr",{"name":"HR Department","desc":"Загальні задачі HR-відділу","color":"#124A3B","members":[],"status":"active","order":1}],["columns","hr-backlog",{"boardId":"hr","name":"Backlog","kind":"backlog","color":"#8A9490","order":1}],["columns","hr-todo",{"boardId":"hr","name":"To Do","kind":"todo","color":"#3A6EA5","order":2}],["columns","hr-progress",{"boardId":"hr","name":"In Progress","kind":"progress","color":"#124A3B","order":3}],["columns","hr-waiting",{"boardId":"hr","name":"Waiting","kind":"waiting","color":"#B7791F","order":4}],["columns","hr-review",{"boardId":"hr","name":"Review","kind":"review","color":"#B0507E","order":5}],["columns","hr-done",{"boardId":"hr","name":"Done","kind":"done","color":"#2E7D5B","order":6}],["boards","rec",{"name":"Recruitment","desc":"Вакансії, джерела кандидатів, найм","color":"#2E7D5B","members":[],"status":"active","order":2}],["columns","rec-backlog",{"boardId":"rec","name":"Backlog","kind":"backlog","color":"#8A9490","order":1}],["columns","rec-todo",{"boardId":"rec","name":"To Do","kind":"todo","color":"#3A6EA5","order":2}],["columns","rec-progress",{"boardId":"rec","name":"In Progress","kind":"progress","color":"#124A3B","order":3}],["columns","rec-waiting",{"boardId":"rec","name":"Waiting","kind":"waiting","color":"#B7791F","order":4}],["columns","rec-review",{"boardId":"rec","name":"Review","kind":"review","color":"#B0507E","order":5}],["columns","rec-done",{"boardId":"rec","name":"Done","kind":"done","color":"#2E7D5B","order":6}],["boards","onb",{"name":"Onboarding","desc":"Адаптація нових працівників","color":"#3A6EA5","members":[],"status":"active","order":3}],["columns","onb-backlog",{"boardId":"onb","name":"Backlog","kind":"backlog","color":"#8A9490","order":1}],["columns","onb-todo",{"boardId":"onb","name":"To Do","kind":"todo","color":"#3A6EA5","order":2}],["columns","onb-progress",{"boardId":"onb","name":"In Progress","kind":"progress","color":"#124A3B","order":3}],["columns","onb-waiting",{"boardId":"onb","name":"Waiting","kind":"waiting","color":"#B7791F","order":4}],["columns","onb-review",{"boardId":"onb","name":"Review","kind":"review","color":"#B0507E","order":5}],["columns","onb-done",{"boardId":"onb","name":"Done","kind":"done","color":"#2E7D5B","order":6}],["boards","comms",{"name":"Internal Communications","desc":"Комунікації всередині мережі","color":"#B7791F","members":[],"status":"active","order":4}],["columns","comms-backlog",{"boardId":"comms","name":"Backlog","kind":"backlog","color":"#8A9490","order":1}],["columns","comms-todo",{"boardId":"comms","name":"To Do","kind":"todo","color":"#3A6EA5","order":2}],["columns","comms-progress",{"boardId":"comms","name":"In Progress","kind":"progress","color":"#124A3B","order":3}],["columns","comms-waiting",{"boardId":"comms","name":"Waiting","kind":"waiting","color":"#B7791F","order":4}],["columns","comms-review",{"boardId":"comms","name":"Review","kind":"review","color":"#B0507E","order":5}],["columns","comms-done",{"boardId":"comms","name":"Done","kind":"done","color":"#2E7D5B","order":6}],["boards","brand",{"name":"Employer Brand","desc":"@lvivcroissants.people, події, контент","color":"#B0507E","members":[],"status":"active","order":5}],["columns","brand-backlog",{"boardId":"brand","name":"Backlog","kind":"backlog","color":"#8A9490","order":1}],["columns","brand-todo",{"boardId":"brand","name":"To Do","kind":"todo","color":"#3A6EA5","order":2}],["columns","brand-progress",{"boardId":"brand","name":"In Progress","kind":"progress","color":"#124A3B","order":3}],["columns","brand-waiting",{"boardId":"brand","name":"Waiting","kind":"waiting","color":"#B7791F","order":4}],["columns","brand-review",{"boardId":"brand","name":"Review","kind":"review","color":"#B0507E","order":5}],["columns","brand-done",{"boardId":"brand","name":"Done","kind":"done","color":"#2E7D5B","order":6}],["boards","intl",{"name":"International HR","desc":"Польща, США, Франція","color":"#1F7F80","members":[],"status":"active","order":6}],["columns","intl-backlog",{"boardId":"intl","name":"Backlog","kind":"backlog","color":"#8A9490","order":1}],["columns","intl-todo",{"boardId":"intl","name":"To Do","kind":"todo","color":"#3A6EA5","order":2}],["columns","intl-progress",{"boardId":"intl","name":"In Progress","kind":"progress","color":"#124A3B","order":3}],["columns","intl-waiting",{"boardId":"intl","name":"Waiting","kind":"waiting","color":"#B7791F","order":4}],["columns","intl-review",{"boardId":"intl","name":"Review","kind":"review","color":"#B0507E","order":5}],["columns","intl-done",{"boardId":"intl","name":"Done","kind":"done","color":"#2E7D5B","order":6}],["projects","p-pins",{"name":"LC Vibe Pins","desc":"Програма визнання працівників через колекційні піни. Річний календар пінів.","ownerId":"u-stella","team":["u-olena","u-viktoriia"],"start":"2026-09-15","due":"2026-12-15","status":"active","color":"#B0507E"}],["projects","p-rectr",{"name":"Recruitment Transformation","desc":"Нові джерела кандидатів, чат-бот «Кар'єра», скорочення часу закриття вакансій.","ownerId":"u-kateryna","team":["u-tetiana","u-svitlana","u-anastasiia"],"start":"2026-09-01","due":"2027-02-28","status":"active","color":"#2E7D5B"}],["projects","p-crm",{"name":"HR CRM","desc":"Власна CRM для воронки кандидатів з інтеграцією дзвінків.","ownerId":"u-stella","team":["u-kateryna","u-khrystyna-m"],"start":"2026-11-01","due":"2027-03-31","status":"planning","color":"#5B6B8C"}],["projects","p-onb",{"name":"Onboarding","desc":"Оновлений онбординг: бот, бейдж, курс в Академії «Океан».","ownerId":"u-khrystyna-b","team":["u-olena"],"start":"2026-10-01","due":"2026-12-31","status":"active","color":"#3A6EA5"}],["projects","p-card",{"name":"Employee Discount Card","desc":"Знижкова картка працівника в мережі закладів.","ownerId":"u-stella","team":["u-khrystyna-m"],"start":"2026-11-15","due":"2027-01-31","status":"planning","color":"#B7791F"}],["projects","p-intl",{"name":"International Recruitment Guide","desc":"Гайд з найму для Польщі, США та Франції.","ownerId":"u-mariia","team":["u-kateryna","u-stella"],"start":"2026-08-15","due":"2026-11-30","status":"hold","color":"#1F7F80"}],["tasks","t-store-usa",{"boardId":"hr","colId":"hr-progress","title":"Запустити пошук Store Manager USA","desc":"Вакансія для першої локації в США. Workable + LinkedIn.","assignees":["u-kateryna","u-mariia"],"due":"2026-10-28","dueTime":"","priority":"high","labels":["recruitment","intl"],"checklist":[{"id":"c0","text":"погодити опис вакансії","done":true},{"id":"c1","text":"підготувати креатив","done":true},{"id":"c2","text":"опублікувати Workable","done":true},{"id":"c3","text":"LinkedIn","done":true},{"id":"c4","text":"отримати перші CV","done":false},{"id":"c5","text":"провести screening","done":false}],"subtasks":[],"files":[],"projectId":"p-intl","commentCount":1,"archived":false,"deleted":false,"order":1,"authorId":"u-stella","createdAt":"2026-10-14T09:00:00.000Z","updatedAt":"2026-10-21T19:00:00.000Z","doneAt":null}],["tasks","t-pins-comms",{"boardId":"hr","colId":"hr-todo","title":"Підготувати комунікацію LC Vibe Pins","desc":"Анонс програми для працівників мережі.","assignees":["u-olena","u-viktoriia"],"due":"2026-10-24","dueTime":"","priority":"mid","labels":["comms","brand"],"checklist":[],"subtasks":[{"id":"s1","title":"Підготувати концепцію","assignee":"u-olena","due":"2026-10-20","status":"done"},{"id":"s2","title":"Дизайн пінів для анонсу","assignee":"u-viktoriia","due":"2026-10-23","status":"progress"},{"id":"s3","title":"Текст анонсу","assignee":"u-olena","due":"2026-10-24","status":"todo"}],"files":[],"projectId":"p-pins","commentCount":0,"archived":false,"deleted":false,"order":1,"authorId":"u-stella","createdAt":"2026-10-14T09:00:00.000Z","updatedAt":"2026-10-21T19:00:00.000Z","doneAt":null}],["tasks","t-guide",{"boardId":"hr","colId":"hr-waiting","title":"Оновити HR-гайд для партнерів","desc":"Оновлений розділ про найм і онбординг у партнерській мережі. Чекаємо погодження.","assignees":["u-stella"],"due":"2026-10-19","dueTime":"","priority":"high","labels":["franchise"],"checklist":[],"subtasks":[],"files":[],"projectId":"","commentCount":0,"archived":false,"deleted":false,"order":1,"authorId":"u-stella","createdAt":"2026-10-14T09:00:00.000Z","updatedAt":"2026-10-21T19:00:00.000Z","doneAt":null}],["tasks","t-gifts",{"boardId":"hr","colId":"hr-review","title":"Погодити новорічні подарунки","desc":"","assignees":["u-stella","u-olena"],"due":"2026-11-05","dueTime":"","priority":"mid","labels":["admin"],"checklist":[],"subtasks":[],"files":[],"projectId":"","commentCount":0,"archived":false,"deleted":false,"order":1,"authorId":"u-stella","createdAt":"2026-10-14T09:00:00.000Z","updatedAt":"2026-10-21T19:00:00.000Z","doneAt":null}],["tasks","t-weekly",{"boardId":"hr","colId":"hr-todo","title":"Підготувати щотижневий HR-звіт","desc":"","assignees":["u-stella"],"due":"2026-10-26","dueTime":"","priority":"mid","labels":["analytics"],"checklist":[{"id":"c0","text":"вакансії: відкриті / закриті","done":false},{"id":"c1","text":"плинність за тиждень","done":false},{"id":"c2","text":"онбординг","done":false},{"id":"c3","text":"ключові ризики","done":false}],"subtasks":[],"files":[],"projectId":"","commentCount":0,"archived":false,"deleted":false,"order":2,"authorId":"u-stella","createdAt":"2026-10-14T09:00:00.000Z","updatedAt":"2026-10-21T19:00:00.000Z","doneAt":null}],["tasks","t-poland",{"boardId":"hr","colId":"hr-progress","title":"Оновити вакансії Польща","desc":"","assignees":["u-tetiana","u-mariia"],"due":"2026-10-22","dueTime":"","priority":"crit","labels":["recruitment","intl"],"checklist":[],"subtasks":[],"files":[],"projectId":"","commentCount":0,"archived":false,"deleted":false,"order":2,"authorId":"u-stella","createdAt":"2026-10-14T09:00:00.000Z","updatedAt":"2026-10-21T19:00:00.000Z","doneAt":null}],["tasks","t-1on1",{"boardId":"hr","colId":"hr-backlog","title":"Підготувати one-to-one","desc":"","assignees":["u-stella"],"due":"","dueTime":"","priority":"low","labels":["admin"],"checklist":[],"subtasks":[],"files":[],"projectId":"","commentCount":0,"archived":false,"deleted":false,"order":1,"authorId":"u-stella","createdAt":"2026-10-14T09:00:00.000Z","updatedAt":"2026-10-21T19:00:00.000Z","doneAt":null}],["tasks","seed-1c",{"boardId":"hr","colId":"hr-todo","title":"Запуск 1С 2.0 на франчайзингову мережу","desc":"Облік робочого часу: сканування вхід/вихід → нарахування оплати. На власних ТТ вже працює.","assignees":["u-khrystyna-m"],"due":"","dueTime":"","priority":"high","labels":["franchise"],"checklist":[],"subtasks":[],"files":[],"projectId":"","commentCount":0,"archived":false,"deleted":false,"order":3,"authorId":"u-stella","createdAt":"2026-10-14T09:00:00.000Z","updatedAt":"2026-10-21T19:00:00.000Z","doneAt":null}],["tasks","seed-ocean",{"boardId":"hr","colId":"hr-backlog","title":"Академія «Океан» — співпраця з франчайзингом","desc":"","assignees":[],"due":"","dueTime":"","priority":"low","labels":["ld"],"checklist":[],"subtasks":[],"files":[],"projectId":"","commentCount":0,"archived":false,"deleted":false,"order":2,"authorId":"u-stella","createdAt":"2026-10-14T09:00:00.000Z","updatedAt":"2026-10-21T19:00:00.000Z","doneAt":null}],["tasks","seed-pins",{"boardId":"hr","colId":"hr-progress","title":"LC Vibe Pins — річний календар пінів","desc":"Програма визнання працівників. Дошка проєкту в Miro.","assignees":["u-stella"],"due":"2026-11-10","dueTime":"","priority":"mid","labels":["brand"],"checklist":[],"subtasks":[],"files":[],"projectId":"p-pins","commentCount":0,"archived":false,"deleted":false,"order":3,"authorId":"u-stella","createdAt":"2026-10-14T09:00:00.000Z","updatedAt":"2026-10-21T19:00:00.000Z","doneAt":null}],["tasks","seed-plan",{"boardId":"hr","colId":"hr-review","title":"Рекрутинг-план: джерела по напрямах","desc":"Львів, Київ, регіони, партнерська мережа. Telegram «Гошій», чат-бот «Кар'єра».","assignees":["u-kateryna"],"due":"2026-10-23","dueTime":"","priority":"mid","labels":["recruitment"],"checklist":[],"subtasks":[],"files":[],"projectId":"p-rectr","commentCount":0,"archived":false,"deleted":false,"order":2,"authorId":"u-stella","createdAt":"2026-10-14T09:00:00.000Z","updatedAt":"2026-10-21T19:00:00.000Z","doneAt":null}],["tasks","t-barista",{"boardId":"hr","colId":"hr-done","title":"Закрити вакансію бариста, Сихів","desc":"","assignees":["u-svitlana"],"due":"2026-10-20","dueTime":"","priority":"mid","labels":["recruitment"],"checklist":[],"subtasks":[],"files":[],"projectId":"p-rectr","commentCount":0,"archived":false,"deleted":false,"order":1,"authorId":"u-stella","createdAt":"2026-10-14T09:00:00.000Z","updatedAt":"2026-10-21T19:00:00.000Z","doneAt":"2026-10-20T14:00:00.000Z"}],["tasks","t-chatbot",{"boardId":"rec","colId":"rec-progress","title":"Налаштувати сценарії чат-бота «Кар'єра»","desc":"","assignees":["u-anastasiia","u-kateryna"],"due":"2026-10-30","dueTime":"","priority":"mid","labels":["recruitment","project"],"checklist":[{"id":"c0","text":"привітання та вибір міста","done":true},{"id":"c1","text":"вибір посади","done":true},{"id":"c2","text":"запис на співбесіду","done":false},{"id":"c3","text":"передача в CRM","done":false}],"subtasks":[],"files":[],"projectId":"p-rectr","commentCount":0,"archived":false,"deleted":false,"order":1,"authorId":"u-stella","createdAt":"2026-10-14T09:00:00.000Z","updatedAt":"2026-10-21T19:00:00.000Z","doneAt":null}],["tasks","t-openvac",{"boardId":"rec","colId":"rec-todo","title":"Перевірити відкриті вакансії","desc":"","assignees":["u-tetiana"],"due":"2026-10-23","dueTime":"","priority":"mid","labels":["recruitment"],"checklist":[],"subtasks":[],"files":[],"projectId":"","commentCount":0,"archived":false,"deleted":false,"order":1,"authorId":"u-stella","createdAt":"2026-10-14T09:00:00.000Z","updatedAt":"2026-10-21T19:00:00.000Z","doneAt":null}],["tasks","t-onb-nov",{"boardId":"onb","colId":"onb-todo","title":"Онбординг нових бариста — листопад","desc":"","assignees":["u-khrystyna-b"],"due":"2026-11-03","dueTime":"","priority":"mid","labels":["onboarding"],"checklist":[{"id":"c0","text":"документи","done":false},{"id":"c1","text":"бейдж","done":false},{"id":"c2","text":"1С облік часу","done":false},{"id":"c3","text":"онбординг-бот","done":false},{"id":"c4","text":"курс в «Океані»","done":false}],"subtasks":[],"files":[],"projectId":"p-onb","commentCount":0,"archived":false,"deleted":false,"order":1,"authorId":"u-stella","createdAt":"2026-10-14T09:00:00.000Z","updatedAt":"2026-10-21T19:00:00.000Z","doneAt":null}],["tasks","t-hero",{"boardId":"comms","colId":"comms-todo","title":"Підготувати Hero of the Month","desc":"","assignees":["u-olena"],"due":"2026-10-31","dueTime":"","priority":"mid","labels":["comms","brand"],"checklist":[],"subtasks":[],"files":[],"projectId":"","commentCount":0,"archived":false,"deleted":false,"order":1,"authorId":"u-stella","createdAt":"2026-10-14T09:00:00.000Z","updatedAt":"2026-10-21T19:00:00.000Z","doneAt":null}],["tasks","t-reels",{"boardId":"brand","colId":"brand-progress","title":"Reels «День у Lviv Croissants»","desc":"","assignees":["u-viktoriia"],"due":"2026-10-27","dueTime":"","priority":"low","labels":["brand"],"checklist":[],"subtasks":[],"files":[],"projectId":"","commentCount":0,"archived":false,"deleted":false,"order":1,"authorId":"u-stella","createdAt":"2026-10-14T09:00:00.000Z","updatedAt":"2026-10-21T19:00:00.000Z","doneAt":null}],["recurring","t-weekly",{"sourceId":"t-weekly","freq":"weekly","every":null,"next":"2026-11-02","active":true}],["recurring","t-hero",{"sourceId":"t-hero","freq":"monthly","every":null,"next":"2026-11-30","active":true}],["recurring","t-openvac",{"sourceId":"t-openvac","freq":"weekly","every":null,"next":"2026-10-30","active":true}],["events","e-plan",{"title":"HR-планірка","date":"2026-10-27","color":"#124A3B","desc":""}],["events","e-hero",{"title":"Оголошення Hero of the Month","date":"2026-10-31","color":"#B0507E","desc":""}],["tasks/t-store-usa/comments","cm1",{"text":"@Марія Грабовська, будь ласка, перевір текст вакансії до 15:00.","by":"u-stella","at":"2026-10-21T09:12:00.000Z","mentions":["u-mariia"]}]];
 /* ================= data layer: Firestore-like API over Supabase table "docs" ================= */
 function newId(){const a='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';const b=new Uint8Array(20);crypto.getRandomValues(b);return [...b].map(x=>a[x%62]).join('')}
-function makeDB(sb){
+function makeDB(sb,onAny){
   const cache=new Map(),loading=new Map(),L=new Map();
   const split=p=>{const i=p.lastIndexOf('/');return [p.slice(0,i),p.slice(i+1)]};
   const fireColl=c=>{const s=L.get(c);if(s)[...s].forEach(f=>f())};
@@ -711,7 +733,7 @@ function makeDB(sb){
   function refetchAll(){[...cache.keys()].forEach(c=>load(c,true).catch(()=>{}))}
   let wasUp=false,hiddenAt=0;
   sb.channel('docs-all').on('postgres_changes',{event:'*',schema:'public',table:'docs'},p=>{
-    if(p.eventType==='DELETE'){const o=p.old||{};if(o.coll)applyLocal(o.coll,o.id,null)}else{const n=p.new||{};if(n.coll)applyLocal(n.coll,n.id,n.data)}
+    if(p.eventType==='DELETE'){const o=p.old||{};if(o.coll)applyLocal(o.coll,o.id,null);if(onAny)onAny(o)}else{const n=p.new||{};if(n.coll)applyLocal(n.coll,n.id,n.data);if(onAny)onAny(n)}
   }).subscribe(st=>{if(st==='SUBSCRIBED'){if(wasUp)refetchAll();wasUp=true}});
   document.addEventListener('visibilitychange',()=>{if(document.hidden)hiddenAt=Date.now();else if(hiddenAt&&Date.now()-hiddenAt>60000)refetchAll()});
   const dsnap=(id,d)=>({id,exists:d!==undefined,data:()=>d,metadata:{}});
@@ -739,10 +761,15 @@ function makeDB(sb){
 function subscribe(coll,key){DB.collection(coll).onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{o[d.id]={...d.data(),id:d.id}});S[key]=o;S.loaded[key]=true;emit();afterData()},()=>{S.loaded[key]=true;emit();afterData()})}
 let notifSub=null,mineSub=null,started=false;
 const mineColl=()=>'mine:'+((S.viewer&&S.viewer.email)||'');
+let shTimer=null;
+async function loadShared(){if(!sb||!S.viewer||!S.viewer.email)return;
+  try{const {data,error}=await sb.from('docs').select('coll,id,data').like('coll','mine:%').neq('coll',mineColl()).contains('data',{shared:[S.viewer.email]});if(error)throw error;
+    const o={};(data||[]).forEach(r=>{o[r.coll+'|'+r.id]={...r.data,id:r.id,coll:r.coll}});S.shared=o;emit()}catch(e){}}
+function scheduleShared(){clearTimeout(shTimer);shTimer=setTimeout(loadShared,400)}
 function afterData(){
   const L=S.loaded;if(!(L.users&&L.boards&&L.columns&&L.tasks))return;
   if(!S.meId&&S.viewer){const em=S.viewer.email;const mine=Object.values(S.users).find(u=>!u.removed&&u.email&&u.email.trim().toLowerCase()===em);if(mine){S.meId=mine.id;emit()}}
-  if(S.meId&&!mineSub&&S.viewer&&S.viewer.email){mineSub=DB.collection(mineColl()).onSnapshot(s=>{const o={};s.docs.forEach(d=>{o[d.id]={...d.data(),id:d.id}});S.mine=o;S.loaded.mine=true;emit()},()=>{S.loaded.mine=true;emit()})}
+  if(S.meId&&!mineSub&&S.viewer&&S.viewer.email){loadShared();mineSub=DB.collection(mineColl()).onSnapshot(s=>{const o={};s.docs.forEach(d=>{o[d.id]={...d.data(),id:d.id}});S.mine=o;S.loaded.mine=true;emit()},()=>{S.loaded.mine=true;emit()})}
   if(S.meId&&!notifSub){notifSub=DB.collection('notifs').where('to','==',S.meId).onSnapshot(s=>{const o={};s.docs.forEach(d=>{o[d.id]={...d.data(),id:d.id}});S.notifs=o;emit()},()=>{})}
   if(S.meId&&L.recurring)runRecurring();
   if(S.meId&&L.boards)seedIfEmpty();
@@ -753,7 +780,7 @@ async function seedIfEmpty(){if(seeding||!isAdmin()||Object.keys(S.boards).lengt
   try{for(const [c,id,d] of SEED){if(c==='users'&&S.users[id])continue;await DB.doc(c+'/'+id).set(d)}ls.set('lc-seeded',true);toast('Готово! Стартові дані створено.')}
   catch(e){seeding=false;toast('Не вдалося створити стартові дані: '+((e&&e.message)||''),'err')}}
 
-function startData(){if(started)return;started=true;DB=makeDB(sb);ASSETS=true;S.dbOk=true;emit();
+function startData(){if(started)return;started=true;DB=makeDB(sb,row=>{if(row&&row.coll&&row.coll.indexOf('mine:')===0&&row.coll!==mineColl())scheduleShared()});document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleShared()});ASSETS=true;S.dbOk=true;emit();
   [['users','users'],['boards','boards'],['columns','columns'],['tasks','tasks'],['projects','projects'],['events','events'],['recurring','recurring'],['openings','openings']].forEach(([c,k])=>subscribe(c,k));
   DB.collection('meta').doc('settings').onSnapshot(s=>{S.settings=s.exists?s.data():{labels:[]};S.loaded.settings=true;emit()},()=>{S.settings={labels:[]};S.loaded.settings=true;emit()})}
 function setSession(s){const u=s&&s.user;
@@ -957,7 +984,7 @@ function Bell(){const [open,setOpen,ref]=usePop();const td=today();
   const ack=ls.get('lc-ack','')===td;const unread=stored.filter(n=>!n.read).length;const count=unread+(ack?0:derived.length);
   function toggle(){if(!open)ls.set('lc-ack',td);setOpen(!open)}
   async function readAll(){for(const n of stored.filter(n=>!n.read)){S.notifs={...S.notifs,[n.id]:{...n,read:true}};DB.collection('notifs').doc(n.id).update({read:true}).catch(()=>{})}emit()}
-  function openN(n){if(!n.read){S.notifs={...S.notifs,[n.id]:{...n,read:true}};DB.collection('notifs').doc(n.id).update({read:true}).catch(()=>{})}setOpen(false);if(S.tasks[n.taskId])openTask(n.taskId)}
+  function openN(n){if(!n.read){S.notifs={...S.notifs,[n.id]:{...n,read:true}};DB.collection('notifs').doc(n.id).update({read:true}).catch(()=>{})}setOpen(false);if(n.todo){go({v:'notebook'});openTodo(n.todo);return}if(S.tasks[n.taskId])openTask(n.taskId)}
   return html`<span className="menu-anchor" ref=${ref}><button type="button" className="icon-btn" aria-label=${`Сповіщення${count?`: ${count} нових`:''}`} onClick=${toggle}><${I} n="bell" s=${19}/>${count>0&&html`<span className="badge">${count>9?'9+':count}</span>`}</button>
     ${open&&html`<div className="pop" style=${{width:360}}>
       <div style=${{display:'flex',alignItems:'center',padding:'6px 8px'}}><b style=${{flex:1}}>Сповіщення</b>${unread>0&&html`<button type="button" className="btn ghost sm" onClick=${readAll}>Позначити прочитаними</button>`}</div>
@@ -1376,26 +1403,132 @@ async function mineDel(id){const prev=S.mine[id];const c={...S.mine};delete c[id
   try{await DB.collection(mineColl()).doc(id).delete()}catch(e){if(prev){S.mine={...S.mine,[id]:prev};emit()}toast(dbErr(e),'err')}}
 const todoSort=(a,b)=>(b.star?1:0)-(a.star?1:0)||((a.due||'9999')<(b.due||'9999')?-1:(a.due||'9999')>(b.due||'9999')?1:0)||((a.order||0)-(b.order||0));
 function Star({on}){return html`<svg width="17" height="17" viewBox="0 0 24 24" fill=${on?'currentColor':'none'} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true"><path d=${ICONS.star}/></svg>`}
-function TodoItem({t}){const [ed,setEd]=useState(false);const [open,setOpen,ref]=usePop();const td=today();
+const getTodo=k=>k.coll===mineColl()?S.mine[k.id]:S.shared[k.coll+'|'+k.id];
+const openTodo=k=>{S.openTodo=k;emit()};
+const closeTodo=()=>{S.openTodo=null;emit()};
+const ownerOf=coll=>{const em=coll.slice(5);return users().find(u=>(u.email||'').trim().toLowerCase()===em)};
+async function pSet(coll,id,patch){if(coll===mineColl())return mineSet(id,patch);const key=coll+'|'+id;const prev=S.shared[key];
+  S.shared={...S.shared,[key]:{...prev,...patch}};emit();
+  try{await DB.collection(coll).doc(id).update(clean(patch));return true}catch(e){S.shared={...S.shared,[key]:prev};emit();toast(dbErr(e),'err');return false}}
+const escH=x=>String(x==null?'':x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function sanitizeNotes(html){const doc=new DOMParser().parseFromString('<div>'+(html||'')+'</div>','text/html');const root=doc.body.firstChild;if(!root)return '';
+  const ALLOW={B:1,STRONG:1,I:1,EM:1,U:1,BR:1,DIV:1,P:1,UL:1,OL:1,LI:1,SPAN:1};
+  (function walk(n){[...n.childNodes].forEach(c=>{if(c.nodeType===3)return;if(c.nodeType!==1){c.remove();return}
+    if(!ALLOW[c.tagName]){walk(c);c.replaceWith(...c.childNodes);return}
+    const bg=c.style&&c.style.backgroundColor,fw=c.style&&c.style.fontWeight,todo=c.getAttribute('data-todo'),chip=c.classList.contains('nt-link');
+    [...c.attributes].forEach(a=>c.removeAttribute(a.name));
+    if(c.tagName==='SPAN'){if(chip&&todo){c.className='nt-link';c.setAttribute('contenteditable','false');c.setAttribute('data-todo',todo.replace(/[^\w-]/g,''));c.textContent=c.textContent;return}
+      if(bg&&bg!=='transparent'&&bg!=='rgba(0, 0, 0, 0)')c.style.backgroundColor=bg;if(fw==='bold'||Number(fw)>=600)c.style.fontWeight='bold'}
+    walk(c)})})(root);
+  return root.innerHTML}
+const MARKERS=[['#FFE58A','Жовтий маркер'],['#BDF0C8','Зелений маркер'],['#FBC9DF','Рожевий маркер'],['#C7DDFF','Блакитний маркер']];
+function TodoItem({t}){const [open,setOpen,ref]=usePop();const td=today();const coll=t.coll||mineColl();const own=coll===mineColl();
   const dc=!t.due?'empty':t.done?'':t.due<td?'late':diffDays(t.due,td)<=1?'soon':'';
-  const toggle=()=>mineSet(t.id,{done:!t.done,doneAt:!t.done?nowIso():null});
-  function toBoard(){setOpen(false);openQuick({title:t.text,due:t.due||'',assignee:S.meId,onCreated:()=>{mineSet(t.id,{done:true,doneAt:nowIso()});toast('Справу перенесено на дошку')}})}
+  const toggle=()=>pSet(coll,t.id,{done:!t.done,doneAt:!t.done?nowIso():null});
+  const k={coll,id:t.id};const owner=!own&&ownerOf(coll);const nf=(t.files||[]).length,ns=(t.sharedIds||[]).length;
+  function toBoard(){setOpen(false);openQuick({title:t.text,due:t.due||'',assignee:S.meId,onCreated:()=>{pSet(coll,t.id,{done:true,doneAt:nowIso()});toast('Справу перенесено на дошку')}})}
   return html`<div className=${cls('td',t.done&&'done')}>
     <button type="button" className=${cls('tick',t.done&&'on')} aria-label=${t.done?'Повернути':'Виконано'} onClick=${toggle}><${I} n="check" s=${12} w=${2.6}/></button>
-    ${ed?html`<input className="inp sm" autoFocus defaultValue=${t.text} onBlur=${e=>{const v=e.target.value.trim();setEd(false);if(v&&v!==t.text)mineSet(t.id,{text:v})}} onKeyDown=${e=>{if(e.key==='Enter')e.target.blur();if(e.key==='Escape'){e.stopPropagation();setEd(false)}}}/>`
-      :html`<span className="td-t" onClick=${()=>setEd(true)}>${t.text}</span>`}
-    ${!t.done&&html`<input type="date" className=${cls('dt',dc)} value=${t.due||''} onChange=${e=>mineSet(t.id,{due:e.target.value})} aria-label="Дата" title="Дата"/>`}
-    <button type="button" className=${cls('star',t.star&&'on')} aria-label="Важливо" title="Важливо" onClick=${()=>mineSet(t.id,{star:!t.star})}><${Star} on=${!!t.star}/></button>
+    <span className="td-t" role="button" tabIndex="0" onClick=${()=>openTodo(k)} onKeyDown=${e=>{if(e.key==='Enter')openTodo(k)}}>${t.text}
+      ${(t.desc||nf||ns)?html`<span className="td-ic">${t.desc?html`<span title="Є опис"><${I} n="note" s=${13}/></span>`:null}${nf?html`<span title=${'Файлів: '+nf}><${I} n="clip" s=${13}/></span>`:null}${ns?html`<span title=${'Поділено: '+(t.sharedIds||[]).map(uname).join(', ')}><${I} n="users" s=${13}/></span>`:null}</span>`:null}</span>
+    ${owner&&html`<span title=${'Від: '+owner.name}><${Avatar} u=${owner} size=${22}/></span>`}
+    ${!t.done&&html`<input type="date" className=${cls('dt',dc)} value=${t.due||''} onChange=${e=>pSet(coll,t.id,{due:e.target.value})} aria-label="Дата" title="Дата"/>`}
+    <button type="button" className=${cls('star',t.star&&'on')} aria-label="Важливо" title="Важливо" onClick=${()=>pSet(coll,t.id,{star:!t.star})}><${Star} on=${!!t.star}/></button>
     <span className="menu-anchor" ref=${ref}><button type="button" className="icon-btn sm" aria-label="Ще дії" onClick=${()=>setOpen(!open)}><${I} n="dots"/></button>
-      ${open&&html`<div className="pop">${!t.done&&html`<button type="button" className="pop-item" onClick=${toBoard}><${I} n="cols" s=${15}/><span>Зробити задачею на дошці</span></button>`}
-        <button type="button" className="pop-item danger" onClick=${()=>{setOpen(false);mineDel(t.id)}}><${I} n="trash" s=${15}/><span>Видалити</span></button></div>`}</span>
+      ${open&&html`<div className="pop"><button type="button" className="pop-item" onClick=${()=>{setOpen(false);openTodo(k)}}><${I} n="note" s=${15}/><span>Відкрити: опис, файли, поділитися</span></button>
+        ${!t.done&&html`<button type="button" className="pop-item" onClick=${toBoard}><${I} n="cols" s=${15}/><span>Зробити задачею на дошці</span></button>`}
+        ${own&&html`<button type="button" className="pop-item danger" onClick=${()=>{setOpen(false);mineDel(t.id)}}><${I} n="trash" s=${15}/><span>Видалити</span></button>`}</div>`}</span>
   </div>`}
-function NotesBox(){const n=S.mine.notes;const [v,setV]=useState(n?(n.text||''):'');const [st,setSt]=useState('');const tmr=useRef(null);const ref=useRef(null);
-  useEffect(()=>{if(document.activeElement!==ref.current)setV(n?(n.text||''):'')},[n&&n.text]);
-  useEffect(()=>()=>clearTimeout(tmr.current),[]);
-  function change(x){setV(x);setSt('Зберігаю…');clearTimeout(tmr.current);tmr.current=setTimeout(async()=>{const ok=await mineSet('notes',{kind:'notes',text:x,updatedAt:nowIso()},!S.mine.notes);setSt(ok?'Збережено':'')},700)}
+function PersonalPanel({k}){const t=getTodo(k);const own=k.coll===mineColl();
+  const [desc,setDesc]=useState(t?(t.desc||''):'');const dref=useRef(null);const [busy,setBusy]=useState('');const [link,setLink]=useState(null);const inp=useRef(null);
+  useEffect(()=>{const f=e=>{if(e.key==='Escape'&&!document.querySelector('.modal-wrap'))closeTodo()};window.addEventListener('keydown',f);return()=>window.removeEventListener('keydown',f)},[]);
+  useEffect(()=>{if(t&&document.activeElement!==dref.current)setDesc(t.desc||'')},[t&&t.desc]);
+  if(!t)return html`<div className="panel-wrap" onPointerDown=${e=>{if(e.target===e.currentTarget)closeTodo()}}><aside className="panel"><div className="panel-body"><p>Справу не знайдено: її видалили або доступ закрито.</p><button type="button" className="btn" onClick=${closeTodo}>Закрити</button></div></aside></div>`;
+  const set=p=>pSet(k.coll,k.id,{...p,updatedAt:nowIso()});const owner=own?me():ownerOf(k.coll);
+  async function addFiles(list){for(const f of list){setBusy(`Завантажую «${f.name}»…`);try{const rec=await uploadAsset(f);const cur=getTodo(k);await set({files:[...((cur&&cur.files)||[]),rec]})}catch(e){toast(upErr(e,f.name),'err')}}setBusy('')}
+  async function addLink(){const u=(link.url||'').trim();if(!/^https?:\/\//i.test(u)){toast('Посилання має починатися з https://','err');return}const name=(link.name||'').trim()||u.replace(/^https?:\/\//,'').slice(0,60);
+    const cur=getTodo(k);await set({files:[...((cur&&cur.files)||[]),{id:newId(),kind:'link',url:u,name,by:S.meId,at:nowIso()}]});setLink(null)}
+  async function rmFile(f){const cur=getTodo(k);if(f.kind!=='link'&&f.by===S.meId){try{await sb.storage.from('files').remove([f.id])}catch(e){}}await set({files:((cur&&cur.files)||[]).filter(x=>x.id!==f.id)})}
+  async function share(ids){ids=ids.filter(id=>id!==S.meId);const valid=ids.filter(id=>S.users[id]&&(S.users[id].email||'').trim());
+    if(valid.length<ids.length)toast('У когось із колег не вказано email — додайте його в Налаштування → Користувачі','err');
+    const prevIds=t.sharedIds||[];const added=valid.filter(id=>!prevIds.includes(id));
+    const ok=await set({sharedIds:valid,shared:valid.map(id=>S.users[id].email.trim().toLowerCase())});
+    if(ok&&added.length){added.forEach(to=>DB.collection('notifs').doc().set({to,from:S.meId,type:'share',taskId:'',todo:{coll:k.coll,id:k.id},text:`ділиться з вами справою «${t.text}»`,at:nowIso(),read:false}).catch(()=>{}));toast('Поділено: '+added.map(uname).join(', '))}}
+  async function del(){closeTodo();await mineDel(k.id)}
+  const files=t.files||[];
+  return html`<div className="panel-wrap" onPointerDown=${e=>{if(e.target===e.currentTarget)closeTodo()}}>
+   <aside className="panel" role="dialog" aria-label=${'Справа: '+t.text}>
+    <div className="panel-top">
+      <div className="crumb"><${I} n=${own?'lock':'users'} s=${14}/><span>${own?'Мій блокнот':'Поділились зі мною · '+(owner?owner.name:'колега')}</span></div>
+      <button type="button" className=${cls('btn sm',t.done?'':'primary')} onClick=${()=>set({done:!t.done,doneAt:!t.done?nowIso():null})}><${I} n="check" s=${14}/>${t.done?'Виконано':'Позначити виконаною'}</button>
+      <button type="button" className="icon-btn" onClick=${closeTodo} aria-label="Закрити"><${I} n="x" s=${18}/></button>
+    </div>
+    <div className="panel-body">
+      <${InlineText} className="p-title" value=${t.text} onSave=${v=>set({text:v})}/>
+      <div className="props">
+        <div className="k"><${I} n="clock" s=${15}/>Дата</div>
+        <div className="v"><input type="date" className="inp sm" style=${{width:160}} value=${t.due||''} onChange=${e=>set({due:e.target.value})}/>${t.due&&html`<button type="button" className="btn ghost sm" onClick=${()=>set({due:''})}>Прибрати</button>`}</div>
+        <div className="k"><${I} n="star" s=${15}/>Важливо</div>
+        <div className="v"><button type="button" className=${cls('star',t.star&&'on')} onClick=${()=>set({star:!t.star})} aria-label="Важливо"><${Star} on=${!!t.star}/></button><span className="muted" style=${{fontSize:13}}>${t.star?'так':'ні'}</span></div>
+        <div className="k"><${I} n="users" s=${15}/>${own?'Поділитися':'Власник'}</div>
+        <div className="v">${own?html`<${Fragment}>${(t.sharedIds||[]).map(u=>html`<span key=${u} className="chip-user"><${Avatar} id=${u} size=${22}/>${uname(u)}<button type="button" aria-label=${'Не ділитися з '+uname(u)} onClick=${()=>share((t.sharedIds||[]).filter(x=>x!==u))}>×</button></span>`)}
+            <${UserPicker} value=${t.sharedIds||[]} onChange=${share} trigger=${html`<${I} n="plus" s=${13}/>${(t.sharedIds||[]).length?'Ще':'Вибрати колег'}`}/><//>`
+          :html`<span className="chip-user"><${Avatar} u=${owner} size=${22}/>${owner?owner.name:'колега'}</span>`}</div>
+      </div>
+      ${own&&!(t.sharedIds||[]).length&&html`<div className="hint" style=${{marginTop:-10}}>Справу бачите тільки ви. Якщо поділитися, вибрані колеги побачать її в «Поділилися зі мною», зможуть відмічати й доповнювати.</div>`}
+      <div className="psec"><h4>Опис</h4><textarea ref=${dref} className="desc" placeholder="Деталі, контакти, домовленості…" value=${desc} onChange=${e=>setDesc(e.target.value)} onBlur=${()=>{if(desc!==(t.desc||''))set({desc})}}/></div>
+      <div className="psec"><h4>Файли та посилання ${files.length>0&&html`<span className="n">${files.length}</span>`}<span className="sp"></span>
+          ${!link&&html`<button type="button" className="btn ghost sm" onClick=${()=>setLink({url:'',name:''})}><${I} n="link" s=${14}/>Посилання</button>`}</h4>
+        <div className="files">${files.map(f=>html`<${FileRow} key=${f.id} f=${f} canDel=${own||f.by===S.meId} onRm=${()=>rmFile(f)}/>`)}</div>
+        ${link&&html`<div className="grid2"><input className="inp sm" autoFocus placeholder="https://…" value=${link.url} onChange=${e=>setLink({...link,url:e.target.value})}/><input className="inp sm" placeholder="Назва (необовʼязково)" value=${link.name} onChange=${e=>setLink({...link,name:e.target.value})} onKeyDown=${e=>{if(e.key==='Enter')addLink()}}/></div>
+          <div style=${{display:'flex',gap:6}}><button type="button" className="btn primary sm" onClick=${addLink}>Додати посилання</button><button type="button" className="btn ghost sm" onClick=${()=>setLink(null)}>Скасувати</button></div>`}
+        <button type="button" className="drop" onClick=${()=>inp.current&&inp.current.click()} onDragOver=${e=>e.preventDefault()} onDrop=${e=>{e.preventDefault();addFiles([...e.dataTransfer.files])}}>
+          ${busy||html`<span>Перетягніть файли сюди або натисніть, щоб вибрати</span><br/><small>PDF, Word, Excel, фото · до 50 МБ</small>`}</button>
+        <input ref=${inp} type="file" multiple hidden onChange=${e=>{addFiles([...e.target.files]);e.target.value=''}}/>
+      </div>
+      <div style=${{display:'flex',gap:8,flexWrap:'wrap'}}>
+        ${!t.done&&html`<button type="button" className="btn" onClick=${()=>{const kk=k;closeTodo();openQuick({title:t.text,due:t.due||'',assignee:S.meId,onCreated:()=>{pSet(kk.coll,kk.id,{done:true,doneAt:nowIso()});toast('Справу перенесено на дошку')}})}}><${I} n="cols" s=${14}/>Зробити задачею на дошці</button>`}
+        <span style=${{flex:1}}></span>${own&&html`<${Confirm} label="Видалити справу" confirm="Точно видалити?" onYes=${del} icon="trash"/>`}
+      </div>
+    </div>
+   </aside></div>`}
+function NotesBox(){const n=S.mine.notes;const ed=useRef(null);const range=useRef(null);const tmr=useRef(null);const lastSaved=useRef(null);
+  const [st,setSt]=useState('');const [open,setOpen,pref]=usePop();const [q,setQ]=useState('');
+  const toHtml=x=>x?(x.html!=null?sanitizeNotes(x.html):escH(x.text||'').replace(/\n/g,'<br>')):'';
+  useEffect(()=>{if(ed.current)ed.current.innerHTML=toHtml(S.mine.notes)},[]);
+  useEffect(()=>{const el=ed.current;if(el&&n&&n.html!=null&&document.activeElement!==el&&n.html!==lastSaved.current)el.innerHTML=sanitizeNotes(n.html)},[n&&n.html]);
+  useEffect(()=>{const el=ed.current;if(!el)return;el.querySelectorAll('.nt-link').forEach(ch=>{const x=S.mine[ch.dataset.todo];ch.classList.toggle('done',!!(x&&x.done));ch.classList.toggle('gone',!x);if(x&&ch.textContent!==x.text)ch.textContent=x.text;ch.title=x?(x.done?'Виконано — натисніть, щоб відкрити':'Натисніть, щоб відкрити справу'):'Справу видалено'})});
+  useEffect(()=>{const f=()=>{const s=document.getSelection();if(s&&s.rangeCount&&ed.current&&ed.current.contains(s.anchorNode))range.current=s.getRangeAt(0).cloneRange()};
+    document.addEventListener('selectionchange',f);return()=>{document.removeEventListener('selectionchange',f);clearTimeout(tmr.current)}},[]);
+  function save(){setSt('Зберігаю…');clearTimeout(tmr.current);tmr.current=setTimeout(async()=>{const el=ed.current;if(!el)return;const html=sanitizeNotes(el.innerHTML);lastSaved.current=html;
+    const ok=await mineSet('notes',{kind:'notes',html,text:el.innerText,updatedAt:nowIso()},!S.mine.notes);setSt(ok?'Збережено':'')},600)}
+  function restore(){const el=ed.current;el.focus();const r=range.current;if(r){const s=document.getSelection();s.removeAllRanges();s.addRange(r)}}
+  function cmd(c,v,css){restore();try{document.execCommand('styleWithCSS',false,!!css)}catch(e){}document.execCommand(c,false,v);save()}
+  function insertChip(x){restore();document.execCommand('insertHTML',false,`<span class="nt-link" contenteditable="false" data-todo="${escH(x.id)}">${escH(x.text)}</span>&nbsp;`);save()}
+  async function fromSelection(){const r=range.current;const txt=r?r.toString().replace(/\s+/g,' ').trim():'';
+    if(!txt){toast('Спершу виділіть у нотатці текст, з якого зробити справу','err');return}
+    const id=DB.collection(mineColl()).doc().id;const text=txt.slice(0,200);
+    if(await mineSet(id,{kind:'todo',text,done:false,due:'',star:false,createdAt:nowIso(),order:Date.now()},true)){insertChip({id,text});toast('Справу створено й привʼязано до нотатки')}}
+  const todos=Object.values(S.mine).filter(x=>x.kind==='todo'&&!x.done&&(!q||x.text.toLowerCase().includes(q.toLowerCase()))).sort(todoSort).slice(0,30);
+  const keep=e=>e.preventDefault();
   return html`<section className="box"><h2 className="sec-t">Нотатки <span style=${{flex:1}}></span><span className="lock">${st||(n&&n.updatedAt?'змінено '+fmtDT(n.updatedAt):'')}</span></h2>
-    <textarea ref=${ref} className="notes" value=${v} onChange=${e=>change(e.target.value)} placeholder="Думки, ідеї, домовленості з дзвінків, номери телефонів… Зберігається автоматично."/></section>`}
+    <div className="ntb" role="toolbar" aria-label="Форматування нотаток">
+      ${MARKERS.map(([c,label])=>html`<button type="button" key=${c} className="sw" style=${{background:c}} title=${label} aria-label=${label} onMouseDown=${keep} onClick=${()=>cmd('hiliteColor',c,true)}></button>`)}
+      <button type="button" className="sw clear" title="Прибрати маркер" aria-label="Прибрати маркер" onMouseDown=${keep} onClick=${()=>cmd('hiliteColor','transparent',true)}></button>
+      <span className="sep"></span>
+      <button type="button" className="tb" title="Жирний" onMouseDown=${keep} onClick=${()=>cmd('bold')}><b>Ж</b></button>
+      <button type="button" className="tb" title="Список" onMouseDown=${keep} onClick=${()=>cmd('insertUnorderedList')}>• Список</button>
+      <span className="sep"></span>
+      <button type="button" className="tb" title="Зробити справу з виділеного тексту" onMouseDown=${keep} onClick=${fromSelection}><${I} n="plus" s=${14}/>Справа з виділеного</button>
+      <span className="menu-anchor" ref=${pref}><button type="button" className="tb" title="Вставити посилання на справу" onMouseDown=${keep} onClick=${()=>{setQ('');setOpen(!open)}}><${I} n="link" s=${14}/>Привʼязати справу</button>
+        ${open&&html`<div className="pop" style=${{width:320}}><input className="inp sm" autoFocus placeholder="Пошук справи" value=${q} onChange=${e=>setQ(e.target.value)}/>
+          <div className="pop-list">${todos.map(x=>html`<button type="button" key=${x.id} className="pop-item" onClick=${()=>{setOpen(false);insertChip(x)}}><span><b style=${{fontWeight:500}}>${x.text}</b><small>${x.due?fmtD(x.due):'без дати'}</small></span></button>`)}
+          ${!todos.length&&html`<div className="hint" style=${{padding:8}}>Немає відкритих справ. Додайте справу ліворуч або скористайтеся «Справа з виділеного».</div>`}</div></div>`}</span>
+    </div>
+    <div ref=${ed} className="notes-ed" contentEditable="true" role="textbox" aria-multiline="true" aria-label="Нотатки" data-ph="Думки, ідеї, домовленості з дзвінків… Виділіть текст і натисніть колір, щоб позначити маркером."
+      onInput=${save} onPaste=${e=>{e.preventDefault();document.execCommand('insertText',false,e.clipboardData.getData('text/plain'));save()}}
+      onClick=${e=>{const ch=e.target.closest&&e.target.closest('.nt-link');if(ch){e.preventDefault();const id=ch.dataset.todo;if(S.mine[id])openTodo({coll:mineColl(),id});else toast('Цю справу видалено','err')}}}></div>
+  </section>`}
 function NotebookPage(){const td=today(),tm=addDays(td,1),we=addDays(startOfWeek(td),6);
   const [text,setText]=useState('');const [due,setDue]=useState('');const [showDone,setShowDone]=useState(false);
   const todos=Object.values(S.mine).filter(x=>x.kind==='todo');const open=todos.filter(t=>!t.done);
@@ -1419,6 +1552,7 @@ function NotebookPage(){const td=today(),tm=addDays(td,1),we=addDays(startOfWeek
         </div>
         ${!open.length?html`<div className="empty" style=${{marginTop:6}}>${todos.length?'Усе зроблено! Додайте нову справу вгорі.':'Тут ваші особисті справи: дзвінки, нагадування, дрібниці, які не потрібні на спільній дошці. Напишіть першу й натисніть Enter.'}</div>`:
           groups.map(([name,fn,k])=>{const list=open.filter(fn).sort(todoSort);return list.length?html`<div key=${name} className=${cls('grp',k)}><h5>${name} <span className="n">${list.length}</span></h5>${list.map(t=>html`<${TodoItem} key=${t.id} t=${t}/>`)}</div>`:null})}
+        ${Object.keys(S.shared).length>0&&html`<div className="grp" style=${{marginTop:16}}><h5><${I} n="users" s=${14}/> Поділилися зі мною <span className="n">${Object.values(S.shared).filter(x=>!x.done).length}</span></h5>${Object.values(S.shared).sort((a,b)=>(a.done?1:0)-(b.done?1:0)||todoSort(a,b)).map(t=>html`<${TodoItem} key=${t.coll+'|'+t.id} t=${t}/>`)}</div>`}
         ${done.length>0&&html`<div className="grp" style=${{marginTop:16}}><h5 style=${{display:'flex',alignItems:'center',gap:8}}><button type="button" className="btn ghost sm" style=${{marginLeft:-10}} onClick=${()=>setShowDone(!showDone)}><${I} n=${showDone?'down':'right'} s=${14}/>Виконано <span className="n">${done.length}</span></button><span style=${{flex:1}}></span>
           ${showDone&&html`<${Confirm} className="btn ghost sm" label="Очистити виконані" confirm="Видалити всі виконані?" onYes=${()=>done.forEach(t=>mineDel(t.id))}/>`}</h5>
           ${showDone&&done.slice(0,100).map(t=>html`<${TodoItem} key=${t.id} t=${t}/>`)}</div>`}
@@ -1685,7 +1819,7 @@ function App(){useStore();
   else if(r.v==='settings')page=html`<${SettingsPage}/>`;
   else page=html`<${Dashboard}/>`;
   return html`<div className="shell"><${Sidebar}/><div className="main"><${Topbar}/><main className=${cls('page',flush&&'flush')}>${page}</main></div>
-    ${S.openTask&&html`<${TaskPanel} key=${S.openTask} id=${S.openTask}/>`}${S.quick&&html`<${QuickCreate} init=${S.quick}/>`}<${ModalHost}/><${Toasts}/></div>`}
+    ${S.openTask&&html`<${TaskPanel} key=${S.openTask} id=${S.openTask}/>`}${S.openTodo&&html`<${PersonalPanel} key=${S.openTodo.coll+'|'+S.openTodo.id} k=${S.openTodo}/>`}${S.quick&&html`<${QuickCreate} init=${S.quick}/>`}<${ModalHost}/><${Toasts}/></div>`}
 
 ReactDOM.createRoot(document.getElementById('root')).render(html`<${App}/>`);
 boot().catch(e=>{console.error(e);S.dbOk=false;emit()});
